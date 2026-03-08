@@ -5,28 +5,28 @@ PORT=${PORT:-8080}
 echo "Starting on port $PORT"
 
 cat > /tmp/nginx.conf << NGINXEOF
-worker_processes auto;
+worker_processes 1;
 error_log /dev/stderr warn;
 pid /tmp/nginx.pid;
 
 events {
-    worker_connections 1024;
+    worker_connections 512;
 }
 
 http {
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
-    sendfile on;
-    keepalive_timeout 65;
-    client_body_temp_path /tmp/client_body;
-    fastcgi_temp_path /tmp/fastcgi;
+    client_body_temp_path /tmp;
+    proxy_temp_path /tmp;
+    fastcgi_temp_path /tmp;
+    uwsgi_temp_path /tmp;
+    scgi_temp_path /tmp;
 
     server {
         listen ${PORT};
         server_name _;
         root /var/www/public;
         index index.php;
-        charset utf-8;
 
         location / {
             try_files \$uri \$uri/ /index.php?\$query_string;
@@ -34,7 +34,6 @@ http {
 
         location ~ \\.php\$ {
             fastcgi_pass 127.0.0.1:9000;
-            fastcgi_index index.php;
             fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
             fastcgi_param QUERY_STRING \$query_string;
             fastcgi_param REQUEST_METHOD \$request_method;
@@ -52,15 +51,13 @@ http {
             fastcgi_param SERVER_ADDR \$server_addr;
             fastcgi_param SERVER_PORT \$server_port;
             fastcgi_param SERVER_NAME \$server_name;
-            fastcgi_param HTTPS \$https if_not_empty;
-        }
-
-        location ~ /\\.(?!well-known).* {
-            deny all;
         }
     }
 }
 NGINXEOF
 
+echo "Starting php-fpm..."
 php-fpm -D
-nginx -g "daemon off;" -c /tmp/nginx.conf
+sleep 1
+echo "Starting nginx on port $PORT..."
+nginx -c /tmp/nginx.conf -g "daemon off;"
