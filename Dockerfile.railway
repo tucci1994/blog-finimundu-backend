@@ -19,8 +19,8 @@ RUN mkdir -p storage/logs storage/framework/cache \
     bootstrap/cache \
     && chmod -R 777 storage bootstrap/cache
 
+RUN chmod +x /var/www/docker/railway/start.sh
+
 EXPOSE 8080
 
-CMD sh -c "\
-  php-fpm -D && \
-  nginx -g 'daemon off;' -c /var/www/docker/railway/nginx.conf"
+CMD ["/var/www/docker/railway/start.sh"]
