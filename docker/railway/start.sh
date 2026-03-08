@@ -1,5 +1,10 @@
+#!/bin/sh
+
+PORT=${PORT:-8080}
+
+cat > /etc/nginx/nginx.conf << NGINXCONF
 worker_processes auto;
-error_log /var/log/nginx/error.log warn;
+error_log /dev/stderr warn;
 pid /tmp/nginx.pid;
 
 events {
@@ -13,15 +18,14 @@ http {
     keepalive_timeout 65;
 
     server {
-        listen 80;
+        listen ${PORT};
         server_name _;
         root /var/www/public;
         index index.php;
-
         charset utf-8;
 
         location / {
-            try_files $uri $uri/ /index.php?$query_string;
+            try_files \$uri \$uri/ /index.php?\$query_string;
         }
 
         location = /favicon.ico { access_log off; log_not_found off; }
@@ -30,7 +34,7 @@ http {
         location ~ \.php$ {
             fastcgi_pass 127.0.0.1:9000;
             fastcgi_index index.php;
-            fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+            fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
             include fastcgi_params;
         }
 
@@ -39,3 +43,6 @@ http {
         }
     }
 }
+NGINXCONF
+
+exec /usr/bin/supervisord -c /etc/supervisord.conf
